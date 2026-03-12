@@ -1,35 +1,59 @@
 "use client";
 // src/app/dashboard/page.tsx
+import { useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useAdmin }    from "@/context/AdminContext";
-import { Card, CardHeader, MetricCard, Avatar, Badge, LiveBadge, MarksDiff } from "@/components/ui";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
+import { Card, CardHeader, MetricCard, Avatar, Badge, LiveBadge, MarksDiff, FilterSelect } from "@/components/ui";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, Cell } from "recharts";
 
 export default function DashboardPage() {
   const { metrics, schools, teachers, students, marksAudit, notifications } = useAdmin();
+  const [selectedSchool, setSelectedSchool] = useState("");
+
+  // Filtered data for school-scoped metrics
+  const filteredTeachers = teachers.filter(t => !selectedSchool || t.schoolId === selectedSchool || t.school_id === selectedSchool);
+  const filteredStudents  = students.filter(s => !selectedSchool || s.schoolId === selectedSchool || s.school_id === selectedSchool);
+
+  const selectedSchoolName = selectedSchool ? (schools.find(s => s.id === selectedSchool)?.name || selectedSchool) : "";
 
   const metricCards = [
-    { icon: "🏫", bg: "#eef2ff", value: metrics.schools,         label: "Total Schools",     sub: "schools collection" },
-    { icon: "👩‍🏫", bg: "#e0f7fa", value: metrics.teachers,        label: "Total Teachers",    sub: "users · role=teacher" },
-    { icon: "🎓", bg: "#e8f5e9", value: metrics.students,        label: "Total Students",    sub: "students collection" },
-    { icon: "📝", bg: "#fff8e1", value: metrics.marksToday,      label: "Marks Today",       sub: "student_marks" },
-    { icon: "✅", bg: "#fce4ec", value: metrics.attendanceToday, label: "Attendance Today",  sub: "attendance" },
-    { icon: "👤", bg: "#f3e5f5", value: metrics.activeTeachers,  label: "Active Teachers",   sub: "status=active" },
+    { icon: "🏫", bg: "#eef2ff", value: metrics.schools,                                        label: "Total Schools",    sub: "schools collection" },
+    { icon: "👩‍🏫", bg: "#e0f7fa", value: filteredTeachers.length,                               label: "Total Teachers",   sub: selectedSchool ? selectedSchoolName : "users · role=teacher" },
+    { icon: "🎓", bg: "#e8f5e9", value: filteredStudents.length,                                label: "Total Students",   sub: selectedSchool ? selectedSchoolName : "students collection" },
+    { icon: "📝", bg: "#fff8e1", value: metrics.marksToday,                                     label: "Marks Today",      sub: "student_marks" },
+    { icon: "✅", bg: "#fce4ec", value: metrics.attendanceToday,                                label: "Attendance Today", sub: "attendance" },
+    { icon: "👤", bg: "#f3e5f5", value: filteredTeachers.filter(t => t.status !== "inactive").length, label: "Active Teachers", sub: "status=active" },
   ];
 
-  // Build mini chart data from students (grouped by class)
+  // Build mini chart data filtered by selected school
   const classGroups: Record<string, number> = {};
-  students.forEach(s => { const c = s.classId || s.class || "Other"; classGroups[c] = (classGroups[c] || 0) + 1; });
+  filteredStudents.forEach(s => { const c = s.classId || s.class || "Other"; classGroups[c] = (classGroups[c] || 0) + 1; });
   const classChartData = Object.entries(classGroups).slice(0, 8).map(([name, count]) => ({ name, count }));
 
-  const schoolChartData = schools.map((s, i) => ({
+  const schoolChartData = schools.map(s => ({
     name: (s.name || s.schoolName || s.id || "").slice(0, 10),
+    id: s.id,
     teachers: teachers.filter(t => t.schoolId === s.id || t.school_id === s.id).length,
     students: students.filter(st => st.schoolId === s.id || st.school_id === s.id).length,
   }));
 
   return (
     <DashboardLayout title="Dashboard Overview">
+
+      {/* School filter toolbar */}
+      <div className="flex items-center gap-3 mb-5">
+        <FilterSelect
+          value={selectedSchool}
+          onChange={setSelectedSchool}
+          options={[["", "All Schools"], ...schools.map(s => [s.id, s.name || s.id] as [string, string])]}
+        />
+        {selectedSchool && (
+          <span className="text-[12px] text-slate-500 font-medium">
+            Showing data for: <strong className="text-navy">{selectedSchoolName}</strong>
+          </span>
+        )}
+      </div>
+
       {/* Metric Cards */}
       <div className="grid grid-cols-6 gap-4 mb-6">
         {metricCards.map((c, i) => (
@@ -65,8 +89,16 @@ export default function DashboardPage() {
                   <XAxis dataKey="name" tick={{ fontSize: 9 }} />
                   <YAxis tick={{ fontSize: 10 }} />
                   <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                  <Bar dataKey="teachers" fill="#F5A623" radius={[3,3,0,0]} name="Teachers" />
-                  <Bar dataKey="students" fill="#10B981" radius={[3,3,0,0]} name="Students" />
+                  <Bar dataKey="teachers" radius={[3,3,0,0]} name="Teachers">
+                    {schoolChartData.map((entry, i) => (
+                      <Cell key={i} fill={selectedSchool && entry.id === selectedSchool ? "#F5A623" : "#94a3b8"} />
+                    ))}
+                  </Bar>
+                  <Bar dataKey="students" radius={[3,3,0,0]} name="Students">
+                    {schoolChartData.map((entry, i) => (
+                      <Cell key={i} fill={selectedSchool && entry.id === selectedSchool ? "#0D1B2A" : "#10B981"} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (

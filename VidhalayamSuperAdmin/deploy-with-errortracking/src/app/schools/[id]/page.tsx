@@ -1,11 +1,11 @@
 "use client";
 // src/app/schools/[id]/page.tsx
 import { useParams, useRouter }  from "next/navigation";
-import { updateDoc, doc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
+import { doc, collection, query, where, getDocs, orderBy, limit } from "firebase/firestore";
 import { db }                    from "@/lib/firebase";
 import { useAdmin }              from "@/context/AdminContext";
 import DashboardLayout           from "@/components/layout/DashboardLayout";
-import { Card, CardHeader, Badge, Btn, Table, Tr, Td, SubjectBadge, MarksDiff, EmptyState, Toggle, LiveBadge } from "@/components/ui";
+import { Card, CardHeader, Badge, Btn, Table, Tr, Td, SubjectBadge, MarksDiff, EmptyState, LiveBadge } from "@/components/ui";
 import type { FeatureFlags }     from "@/types";
 import { useState, useEffect }   from "react";
 
@@ -60,7 +60,6 @@ export default function SchoolDetailPage() {
   const [flags,   setFlags]   = useState<FeatureFlags>(school?.features || {
     marksEntry: true, attendance: true, parentLogin: true, qrLogin: false, smsAlerts: true, reportCards: false,
   });
-  const [saving,  setSaving]  = useState(false);
   const [tab,     setTab]     = useState<"overview"|"attendance"|"marks"|"features">("overview");
 
   // Analytics data from Firestore
@@ -192,12 +191,6 @@ export default function SchoolDetailPage() {
     </DashboardLayout>
   );
 
-  const saveFeatures = async () => {
-    setSaving(true);
-    await updateDoc(doc(db, "schools", id), { features: flags });
-    setSaving(false);
-  };
-
   return (
     <DashboardLayout title={school.name || school.schoolName || id}>
       <Btn variant="outline" onClick={() => router.push("/schools")} className="mb-4">← Back to Schools</Btn>
@@ -221,11 +214,6 @@ export default function SchoolDetailPage() {
             <GrowthBadge value={overallAttPct} label="Attendance" />
             <GrowthBadge value={overallMarkAvg} label="Avg Marks" />
             <Badge status={school.status || "active"} />
-            <Btn variant="danger" onClick={async () => {
-              await updateDoc(doc(db, "schools", id), { status: school.status === "suspended" ? "active" : "suspended" });
-            }}>
-              {school.status === "suspended" ? "✓ Enable" : "⊘ Suspend"}
-            </Btn>
           </div>
         </div>
 
@@ -567,6 +555,12 @@ export default function SchoolDetailPage() {
       {tab === "features" && (
         <Card>
           <CardHeader title="🎛️ Feature Flags for this School" />
+          <div className="px-5 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+            <span className="text-blue-500 text-lg">ℹ️</span>
+            <p className="text-[12px] text-blue-600 font-semibold">
+              View only — Feature flags are managed by each School Admin.
+            </p>
+          </div>
           <div className="grid grid-cols-3 gap-3 p-5">
             {FEATURES.map(f => (
               <div key={f.key} className="flex items-center gap-3 bg-slate-50 rounded-xl p-4 border border-slate-200">
@@ -575,14 +569,17 @@ export default function SchoolDetailPage() {
                   <div className="text-[13px] font-bold text-navy">{f.name}</div>
                   <div className="text-[11px] text-slate-400 mt-0.5">{f.desc}</div>
                 </div>
-                <Toggle on={!!flags[f.key]} onToggle={() => setFlags(prev => ({ ...prev, [f.key]: !prev[f.key] }))} />
+                {/* Read-only status indicator */}
+                <div className={`w-11 h-6 rounded-full flex-shrink-0 flex items-center px-1 ${flags[f.key] ? "bg-emerald-500" : "bg-slate-300"}`}>
+                  <div className={`w-[18px] h-[18px] bg-white rounded-full shadow transition-all ${flags[f.key] ? "translate-x-5" : "translate-x-0"}`} />
+                </div>
               </div>
             ))}
           </div>
-          <div className="flex justify-end gap-3 px-5 pb-5">
-            <Btn variant="gold" onClick={saveFeatures} disabled={saving}>
-              {saving ? "Saving…" : "✓ Save Feature Flags"}
-            </Btn>
+          <div className="px-5 pb-5">
+            <p className="text-[11px] text-slate-400">
+              🔒 Super Admin has read-only access. Feature flag changes are made by each School Admin in the mobile app.
+            </p>
           </div>
         </Card>
       )}

@@ -1,11 +1,11 @@
 "use client";
-// src/app/feature-control/page.tsx
+// src/app/feature-control/page.tsx — View Only
 import { useState, useEffect } from "react";
-import { updateDoc, doc, getDoc } from "firebase/firestore";
+import { getDoc, doc } from "firebase/firestore";
 import { db }             from "@/lib/firebase";
 import { useAdmin }       from "@/context/AdminContext";
 import DashboardLayout    from "@/components/layout/DashboardLayout";
-import { Card, CardHeader, FilterSelect, Toggle, Btn } from "@/components/ui";
+import { Card, CardHeader, FilterSelect } from "@/components/ui";
 import type { FeatureFlags } from "@/types";
 
 const FEATURES: { key: keyof FeatureFlags; icon: string; name: string; desc: string }[] = [
@@ -20,9 +20,7 @@ const FEATURES: { key: keyof FeatureFlags; icon: string; name: string; desc: str
 export default function FeatureControlPage() {
   const { schools } = useAdmin();
   const [selectedId, setSelectedId] = useState(schools[0]?.id || "");
-  const [flags, setFlags] = useState<FeatureFlags>({ marksEntry:true, attendance:true, parentLogin:true, qrLogin:false, smsAlerts:true, reportCards:false });
-  const [saving, setSaving] = useState(false);
-  const [saved,  setSaved]  = useState(false);
+  const [flags, setFlags] = useState<FeatureFlags>({ marksEntry: true, attendance: true, parentLogin: true, qrLogin: false, smsAlerts: true, reportCards: false });
 
   useEffect(() => {
     if (!selectedId) return;
@@ -31,24 +29,24 @@ export default function FeatureControlPage() {
     });
   }, [selectedId]);
 
-  const save = async () => {
-    if (!selectedId) return;
-    setSaving(true);
-    await updateDoc(doc(db, "schools", selectedId), { features: flags });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
-  };
-
   return (
-    <DashboardLayout title="Feature Control">
+    <DashboardLayout title="Feature Control — View Only">
       <Card>
         <CardHeader title="🎛️ Feature Flags per School">
           <FilterSelect
             value={selectedId}
-            onChange={v => { setSelectedId(v); setSaved(false); }}
-            options={[["","Select School"], ...schools.map(s => [s.id, s.name || s.id] as [string,string])]}
+            onChange={v => setSelectedId(v)}
+            options={[["", "Select School"], ...schools.map(s => [s.id, s.name || s.id] as [string, string])]}
           />
         </CardHeader>
+
+        <div className="px-5 py-3 bg-blue-50 border-b border-blue-100 flex items-center gap-2">
+          <span className="text-blue-500 text-lg">ℹ️</span>
+          <p className="text-[12px] text-blue-600 font-semibold">
+            View only — Feature flags are managed by each School Admin.
+          </p>
+        </div>
+
         <div className="grid grid-cols-3 gap-4 p-5">
           {FEATURES.map(f => (
             <div key={f.key} className="flex items-center gap-3.5 bg-slate-50 border border-slate-200 rounded-2xl p-5">
@@ -57,18 +55,18 @@ export default function FeatureControlPage() {
                 <div className="text-[13px] font-bold text-navy">{f.name}</div>
                 <div className="text-[11px] text-slate-400 mt-1">{f.desc}</div>
               </div>
-              <Toggle on={!!flags[f.key]} onToggle={() => setFlags(p => ({ ...p, [f.key]: !p[f.key] }))} />
+              {/* Read-only status indicator */}
+              <div className={`w-11 h-6 rounded-full flex-shrink-0 flex items-center px-1 ${flags[f.key] ? "bg-emerald-500" : "bg-slate-300"}`}>
+                <div className={`w-[18px] h-[18px] bg-white rounded-full shadow transition-all ${flags[f.key] ? "translate-x-5" : "translate-x-0"}`} />
+              </div>
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between px-5 pb-5">
-          <p className="text-[12px] text-slate-400">Changes are saved to Firestore and read by the mobile app in real-time.</p>
-          <div className="flex items-center gap-3">
-            {saved && <span className="text-brand-emerald text-[12px] font-semibold">✓ Saved!</span>}
-            <Btn variant="gold" onClick={save} disabled={saving || !selectedId}>
-              {saving ? "Saving…" : "✓ Save Changes"}
-            </Btn>
-          </div>
+
+        <div className="px-5 pb-5">
+          <p className="text-[11px] text-slate-400">
+            🔒 Super Admin has read-only access. Feature flag changes are made by each School Admin in the mobile app.
+          </p>
         </div>
       </Card>
     </DashboardLayout>

@@ -1,11 +1,9 @@
 "use client";
-// src/app/notifications/page.tsx — Full error tracking dashboard
+// src/app/notifications/page.tsx — Error tracking dashboard (View Only)
 import { useState } from "react";
-import { updateDoc, doc, getDocs, query, collection, where, writeBatch } from "firebase/firestore";
-import { db }          from "@/lib/firebase";
 import { useAdmin }    from "@/context/AdminContext";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardHeader, Btn, LiveBadge } from "@/components/ui";
+import { Card, CardHeader, LiveBadge } from "@/components/ui";
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -80,17 +78,6 @@ export default function NotificationsPage() {
   const criticals   = notifications.filter(n => (n as any).severity === "critical").length;
   const byRole      = (role: string) => notifications.filter(n => (n as any).userRole === role).length;
 
-  // ── Actions ────────────────────────────────────────────────────────────────
-  const markRead = async (id: string) => {
-    await updateDoc(doc(db, "alerts", id), { read: true });
-  };
-  const markAllRead = async () => {
-    const snap  = await getDocs(query(collection(db, "alerts"), where("read", "==", false)));
-    const batch = writeBatch(db);
-    snap.docs.forEach(d => batch.update(d.ref, { read: true }));
-    await batch.commit();
-  };
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <DashboardLayout title="Notifications & Error Alerts">
@@ -130,7 +117,6 @@ export default function NotificationsPage() {
               {unreadCount} unread
             </span>
           )}
-          <Btn variant="outline" onClick={markAllRead}>✓ Mark All Read</Btn>
         </CardHeader>
 
         {/* Type filter tabs */}
@@ -242,18 +228,10 @@ export default function NotificationsPage() {
                     <p className="text-[10px] text-slate-400 mt-1.5 font-mono">{n.ts}</p>
                   </div>
 
-                  {/* Right side */}
+                  {/* Right side — view only indicator */}
                   <div className="flex flex-col items-end gap-2 flex-shrink-0">
                     {!n.read && (
-                      <>
-                        <span className="w-2.5 h-2.5 bg-gold rounded-full" />
-                        <button
-                          onClick={() => markRead(n.id)}
-                          className="text-[9px] text-slate-400 hover:text-navy font-semibold"
-                        >
-                          Mark read
-                        </button>
-                      </>
+                      <span className="w-2.5 h-2.5 bg-gold rounded-full" title="Unread" />
                     )}
                   </div>
                 </div>

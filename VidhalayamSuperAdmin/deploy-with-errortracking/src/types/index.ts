@@ -153,3 +153,31 @@ export interface DashboardMetrics {
   attendanceToday: number;
   activeTeachers:  number;
 }
+
+export interface WhatsAppConfig {
+  phoneNumber?:        string;
+  phoneNumberId?:      string;
+  accessToken?:        string;
+  businessAccountId?:  string;
+  verified?:           boolean;
+  enabledTriggers?: {
+    attendance?:     boolean;
+    fees?:           boolean;
+    exams?:          boolean;
+    announcements?:  boolean;
+    emergency?:      boolean;
+  };
+}
+
+export interface WhatsAppLog {
+  id:           string;
+  schoolId?:    string;
+  schoolName?:  string;
+  type?:        "attendance" | "fees" | "exams" | "announcement" | "emergency";
+  recipient?:   string;
+  studentName?: string;
+  status?:      "sent" | "delivered" | "failed" | "pending";
+  errorReason?: string;
+  sentAt?:      unknown;
+  ts?:          string;
+}
