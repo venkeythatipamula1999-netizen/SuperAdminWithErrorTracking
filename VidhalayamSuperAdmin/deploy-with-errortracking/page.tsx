@@ -243,8 +243,8 @@ export default function SchoolsPage() {
       } : null;
 
       // Call backend API — creates school + principal Firebase Auth account
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-      const superAdminKey = process.env.NEXT_PUBLIC_SUPER_ADMIN_KEY || "";
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://1b59c4a1-d915-4b50-bf44-dacb602b7bf8-00-32892q8c36byf.janeway.replit.dev";
+      const superAdminKey = process.env.NEXT_PUBLIC_SUPER_ADMIN_KEY || "VIDLYM_SUPER_2026_XK9M";
 
       const res = await fetch(`${apiUrl}/api/super/schools/create`, {
         method: "POST",
