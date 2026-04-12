@@ -50,7 +50,7 @@ export default function LoginPage() {
           <p className="text-white/40 text-sm mt-1">Super Admin Portal</p>
           <div className="inline-flex items-center gap-2 mt-3 bg-white/5 border border-white/10 rounded-full px-3 py-1">
             <span className="w-2 h-2 bg-brand-emerald rounded-full animate-pulse" />
-            <span className="text-brand-emerald text-xs font-semibold">school-app-87900</span>
+            <span className="text-brand-emerald text-xs font-semibold">{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</span>
           </div>
         </div>
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
           </button>
 
           <p className="text-center text-xs text-slate-400 mt-5">
-            Firebase Auth · <strong className="text-navy">school-app-87900</strong>
+            Firebase Auth · <strong className="text-navy">{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</strong>
           </p>
         </div>
       </div>

@@ -56,9 +56,9 @@ export default function SettingsPage() {
           <div className="p-5">
             <h3 className="text-navy text-[15px] font-extrabold mb-4">🔥 Firebase Connection</h3>
             {[
-              ["Project ID",    "school-app-87900"],
-              ["Auth Domain",   "school-app-87900.firebaseapp.com"],
-              ["Storage",       "school-app-87900.firebasestorage.app"],
+              ["Project ID", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID],
+              ["Auth Domain", `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`],
+              ["Storage", `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebasestorage.app`],
               ["Backend URL",   "http://localhost:5000"],
               ["Auth User",     user?.email || "—"],
               ["UID",           user?.uid || "—"],

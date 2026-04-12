@@ -49,7 +49,7 @@ export default function Sidebar() {
         </div>
         <div className="mt-2.5 flex items-center gap-1.5 bg-brand-emerald/10 border border-brand-emerald/20 rounded-md px-2.5 py-1">
           <span className="w-1.5 h-1.5 bg-brand-emerald rounded-full" />
-          <span className="text-brand-emerald text-[10px] font-semibold">school-app-87900</span>
+          <span className="text-brand-emerald text-[10px] font-semibold">{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</span>
         </div>
       </div>
 

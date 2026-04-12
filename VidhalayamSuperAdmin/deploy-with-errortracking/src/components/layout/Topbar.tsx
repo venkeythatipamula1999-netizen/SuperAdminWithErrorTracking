@@ -42,7 +42,7 @@ export default function Topbar({ title }: Props) {
         </div>
         <div>
           <div className="text-navy text-[11.5px] font-bold">Super Admin</div>
-          <div className="text-slate-400 text-[9.5px]">school-app-87900</div>
+          <div className="text-slate-400 text-[9.5px]">{process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}</div>
         </div>
       </Link>
     </header>

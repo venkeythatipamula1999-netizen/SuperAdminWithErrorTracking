@@ -19,7 +19,7 @@ const jetbrains = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: "Vidhaya Layam — Super Admin",
-  description: "Super Admin Dashboard · school-app-87900",
+  description: `Super Admin Dashboard · ${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}`,
   icons: { icon: "/favicon.ico" },
 };
 
