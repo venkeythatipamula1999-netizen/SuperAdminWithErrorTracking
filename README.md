@@ -1,106 +1,165 @@
-"use client";
-// src/app/settings/page.tsx
-import { useState }    from "react";
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "firebase/auth";
-import { auth }        from "@/lib/firebase";
-import { useAdmin }    from "@/context/AdminContext";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, Btn, FormField, FormInput } from "@/components/ui";
+# SchoolSaaS Super Admin Dashboard
+### Next.js 14 + Tailwind CSS + Firebase (school-app-87900)
 
-export default function SettingsPage() {
-  const { user, metrics, schools, teachers, students, classes, marksAudit, notifications, leaves, trips, salaries, fees } = useAdmin();
-  const [currentPwd, setCurrentPwd] = useState("");
-  const [newPwd,     setNewPwd]     = useState("");
-  const [pwdMsg,     setPwdMsg]     = useState("");
-  const [pwdError,   setPwdError]   = useState("");
+---
 
-  const changePassword = async () => {
-    if (!currentPwd || !newPwd) { setPwdError("Fill both fields."); return; }
-    setPwdError(""); setPwdMsg("");
-    try {
-      const cred = EmailAuthProvider.credential(user!.email!, currentPwd);
-      await reauthenticateWithCredential(auth.currentUser!, cred);
-      await updatePassword(auth.currentUser!, newPwd);
-      setPwdMsg("✓ Password updated!"); setCurrentPwd(""); setNewPwd("");
-    } catch (e: unknown) {
-      setPwdError(e instanceof Error ? e.message.replace("Firebase: ","") : "Error");
+## 🚀 Run Locally (2 minutes)
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start dev server (port 3001 so it doesn't clash with your Express on 5000)
+npm run dev
+
+# 3. Open in browser
+http://localhost:3001
+```
+
+Sign in with your Firebase Admin email + password.  
+All data starts streaming from Firestore the moment you log in.
+
+---
+
+## 📁 Folder Structure
+
+```
+src/
+├── app/
+│   ├── layout.tsx            # Root layout, fonts, AdminProvider
+│   ├── page.tsx              # Redirects to /dashboard or /login
+│   ├── login/page.tsx        # Firebase Auth login screen
+│   ├── dashboard/page.tsx    # Live metrics + charts
+│   ├── schools/
+│   │   ├── page.tsx          # All schools table
+│   │   └── [id]/page.tsx     # School detail + feature flags
+│   ├── teachers/page.tsx
+│   ├── students/page.tsx
+│   ├── classes/page.tsx
+│   ├── marks-audit/page.tsx  # Real-time markEdits collection
+│   ├── leaves/page.tsx       # leave_requests + approve/reject
+│   ├── trips/page.tsx        # Bus trip records
+│   ├── salary/page.tsx
+│   ├── fees/page.tsx
+│   ├── notifications/page.tsx
+│   ├── feature-control/page.tsx
+│   └── settings/page.tsx
+├── components/
+│   ├── layout/
+│   │   ├── Sidebar.tsx       # Left nav with active state
+│   │   ├── Topbar.tsx        # Search + bell + user
+│   │   └── DashboardLayout.tsx # Auth guard wrapper
+│   └── ui/
+│       └── index.tsx         # All reusable components
+├── context/
+│   └── AdminContext.tsx      # All Firestore onSnapshot listeners
+├── lib/
+│   └/firebase.ts            # Firebase init (school-app-87900)
+├── services/
+│   └── api.ts               # Express REST wrapper
+└── types/
+    └── index.ts             # TypeScript types for all collections
+```
+
+---
+
+## 🔥 Live Data — What auto-fetches on login
+
+| Firestore Collection | Screen | Type |
+|---|---|---|
+| `schools` | Dashboard, Schools | `onSnapshot` live |
+| `users` (role=teacher) | Dashboard, Teachers | `onSnapshot` live |
+| `students` | Dashboard, Students | `onSnapshot` live |
+| `classes` | Classes | `onSnapshot` live |
+| `markEdits` | Marks Audit, Dashboard | `onSnapshot` live |
+| `attendance` (today) | Dashboard metric | `onSnapshot` live |
+| `student_marks` (today) | Dashboard metric | `onSnapshot` live |
+| `alerts` | Notifications | `onSnapshot` live |
+| `leave_requests` | Leaves | `onSnapshot` live |
+| `trips` | Bus Trips | `onSnapshot` live |
+| `salaries` | Salaries | `onSnapshot` live |
+| `fees` | Fees | `onSnapshot` live |
+
+REST calls on login:
+- `GET /api/admin/alerts`
+- `GET /api/admin/leaves`
+
+---
+
+## ☁️ Deploy to Vercel
+
+```bash
+# 1. Install Vercel CLI
+npm i -g vercel
+
+# 2. Deploy (first time — follow prompts)
+vercel
+
+# 3. Set environment variables in Vercel dashboard:
+#    Project → Settings → Environment Variables
+#    Add all variables from .env.local
+#    Change NEXT_PUBLIC_API_URL to your deployed Express server URL
+
+# 4. Redeploy
+vercel --prod
+```
+
+**Important:** For production, deploy your Express server (server.js) to Railway, Render, or a VPS and update `NEXT_PUBLIC_API_URL` accordingly.
+
+---
+
+## 🔧 Adding the markEdits collection to your server.js
+
+The Marks Audit screen reads from `markEdits`. Add this to your Express marks save route:
+
+```js
+// In server.js, inside your POST /api/marks/save handler, after saving marks:
+await db.collection('markEdits').add({
+  studentId:   req.body.studentId,
+  studentName: req.body.studentName,
+  subject:     req.body.subject,
+  classId:     req.body.classId,
+  schoolId:    req.body.schoolId || 'school_001',
+  oldMarks:    previousMarks,   // fetch old value before overwriting
+  newMarks:    req.body.marksObtained,
+  editedBy:    req.user?.uid || req.body.teacherId,
+  editReason:  req.body.reason || 'Marks update',
+  timestamp:   admin.firestore.FieldValue.serverTimestamp(),
+});
+```
+
+---
+
+## 🗄️ Firestore Security Rules
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Super admin reads everything
+    match /{document=**} {
+      allow read: if request.auth != null;
     }
-  };
-
-  const dataRows = [
-    ["Schools", schools.length],["Teachers", teachers.length],["Students", students.length],
-    ["Classes", classes.length],["Mark Edits", marksAudit.length],["Leaves", leaves.length],
-    ["Trips", trips.length],["Notifications", notifications.length],
-    ["Salaries", salaries.length],["Fees", fees.length],
-  ];
-
-  const collections = ["students","users","classes","student_marks","attendance","leaveRequests","leave_requests","trips","trip_scans","salaries","fees","events","activities","alerts","parent_children","markEdits","schools"];
-
-  return (
-    <DashboardLayout title="Settings">
-      <div className="grid grid-cols-2 gap-5">
-        {/* Change password */}
-        <Card>
-          <div className="p-5">
-            <h3 className="text-navy text-[15px] font-extrabold mb-4">🔑 Change Password</h3>
-            {pwdMsg   && <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-4 py-2.5 text-[12px] font-semibold mb-4">{pwdMsg}</div>}
-            {pwdError && <div className="bg-rose-50 text-brand-rose border border-rose-200 rounded-lg px-4 py-2.5 text-[12px] font-semibold mb-4">{pwdError}</div>}
-            <FormField label="Current Password"><FormInput placeholder="••••••••" value={currentPwd} onChange={setCurrentPwd} type="password" /></FormField>
-            <FormField label="New Password"><FormInput placeholder="••••••••" value={newPwd} onChange={setNewPwd} type="password" /></FormField>
-            <Btn variant="primary" onClick={changePassword} className="mt-1">Update Password</Btn>
-          </div>
-        </Card>
-
-        {/* Firebase config */}
-        <Card>
-          <div className="p-5">
-            <h3 className="text-navy text-[15px] font-extrabold mb-4">🔥 Firebase Connection</h3>
-            {[
-              ["Project ID", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID],
-              ["Auth Domain", `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebaseapp.com`],
-              ["Storage", `${process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID}.firebasestorage.app`],
-              ["Backend URL",   "http://localhost:5000"],
-              ["Auth User",     user?.email || "—"],
-              ["UID",           user?.uid || "—"],
-            ].map(([k, v]) => (
-              <div key={k} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
-                <span className="text-[12px] text-slate-500">{k}</span>
-                <span className="text-[12px] font-semibold text-navy font-mono">{v}</span>
-              </div>
-            ))}
-            <div className="mt-3 flex items-center gap-2 bg-brand-emerald/10 border border-brand-emerald/20 rounded-xl px-3 py-2.5">
-              <span className="w-2 h-2 bg-brand-emerald rounded-full animate-pulse" />
-              <span className="text-brand-emerald text-[12px] font-semibold">All Firestore listeners active</span>
-            </div>
-          </div>
-        </Card>
-
-        {/* Live data summary */}
-        <Card>
-          <div className="p-5">
-            <h3 className="text-navy text-[15px] font-extrabold mb-4">📊 Live Data Summary</h3>
-            {dataRows.map(([lbl, val]) => (
-              <div key={String(lbl)} className="flex justify-between items-center py-2 border-b border-slate-100 last:border-0">
-                <span className="text-[12px] text-slate-500">{lbl}</span>
-                <span className="text-[15px] font-black text-navy">{val}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Firestore collections */}
-        <Card>
-          <div className="p-5">
-            <h3 className="text-navy text-[15px] font-extrabold mb-4">🗄️ Firestore Collections</h3>
-            <div className="flex flex-wrap gap-2">
-              {collections.map(c => (
-                <span key={c} className="bg-slate-100 text-slate-600 text-[11px] font-semibold font-mono px-2.5 py-1 rounded-full">{c}</span>
-              ))}
-            </div>
-            <p className="text-[11.5px] text-slate-400 mt-4">All {collections.length} collections monitored via onSnapshot listeners. Every screen updates automatically when data changes in any collection.</p>
-          </div>
-        </Card>
-      </div>
-    </DashboardLayout>
-  );
+    // Only teachers write marks
+    match /student_marks/{id} {
+      allow write: if request.auth != null;
+    }
+    // Super admin manages schools
+    match /schools/{id} {
+      allow write: if request.auth != null;
+    }
+    // Super admin manages users
+    match /users/{id} {
+      allow write: if request.auth != null;
+    }
+    // Alerts: read + mark-read only
+    match /alerts/{id} {
+      allow update: if request.auth != null;
+    }
+    // Leave requests: approve/reject
+    match /leave_requests/{id} {
+      allow update: if request.auth != null;
+    }
+  }
 }
+```

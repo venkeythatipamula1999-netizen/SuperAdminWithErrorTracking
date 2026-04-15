@@ -1,24 +1,15 @@
-"use client";
-// src/app/page.tsx
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAdmin }  from "@/context/AdminContext";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: { domains: ["firebasestorage.googleapis.com"] },
+  env: {
+    NEXT_PUBLIC_FIREBASE_API_KEY:             "AIzaSyA-daJ4E8CEVh89BGEU9wRLGOZAT7T3-vM",
+    NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN:         process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID:          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET:      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: "774655999002",
+    NEXT_PUBLIC_FIREBASE_APP_ID:              "1:774655999002:android:6ccc7fd89c5c57598565a3",
+    NEXT_PUBLIC_API_URL:                      process.env.NEXT_PUBLIC_API_URL || "",
+  },
+};
 
-export default function Root() {
-  const { user, authLoading } = useAdmin();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (authLoading) return;
-    router.replace(user ? "/dashboard" : "/login");
-  }, [user, authLoading, router]);
-
-  return (
-    <div className="flex items-center justify-center h-screen bg-navy">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-gold/20 border-t-gold rounded-full animate-spin" />
-        <p className="text-white/40 text-sm">Loading Vidhaya Layam…</p>
-      </div>
-    </div>
-  );
-}
+module.exports = nextConfig;
