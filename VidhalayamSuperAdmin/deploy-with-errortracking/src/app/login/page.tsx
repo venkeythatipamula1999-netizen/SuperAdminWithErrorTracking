@@ -2,7 +2,38 @@
 // src/app/login/page.tsx
 import { useState, useEffect } from "react";
 import { useRouter }  from "next/navigation";
+import { FirebaseError } from "firebase/app";
 import { useAdmin }   from "@/context/AdminContext";
+
+function getLoginErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message === "ACCESS_DENIED") {
+    return "Access denied. This portal is for Super Admins only.";
+  }
+
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case "auth/invalid-credential":
+      case "auth/wrong-password":
+      case "auth/invalid-password":
+      case "auth/user-not-found":
+        return "Invalid email or password.";
+      case "auth/invalid-email":
+        return "Please enter a valid email address.";
+      case "auth/too-many-requests":
+        return "Too many login attempts. Please wait a few minutes and try again.";
+      case "auth/network-request-failed":
+        return "Network error. Check your internet connection and try again.";
+      default:
+        return error.message.replace("Firebase: ", "").replace(/\(.*\)/, "").trim() || "Login failed.";
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message || "Login failed.";
+  }
+
+  return "Login failed.";
+}
 
 export default function LoginPage() {
   const { login, user, authLoading } = useAdmin();
@@ -20,15 +51,10 @@ export default function LoginPage() {
     if (!email || !password) { setError("Please enter your email and password."); return; }
     setLoading(true); setError("");
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.replace("/dashboard");
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Login failed";
-      if (msg === "ACCESS_DENIED") {
-        setError("Access denied. This portal is for Super Admins only.");
-      } else {
-        setError(msg.replace("Firebase: ", "").replace(/\(.*\)/, "").trim());
-      }
+    } catch (error: unknown) {
+      setError(getLoginErrorMessage(error));
     } finally {
       setLoading(false);
     }
