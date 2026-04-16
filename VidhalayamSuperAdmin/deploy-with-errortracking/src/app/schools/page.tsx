@@ -186,7 +186,7 @@ export default function SchoolsPage() {
   const [testing,         setTesting]          = useState(false);
   const [testResult,      setTestResult]       = useState<"success"|"fail"|null>(null);
   const [resetPasswordModal, setResetPasswordModal] = useState<{ schoolId: string; schoolName: string; adminEmail: string } | null>(null);
-  const [newPassword, setNewPassword] = useState("");
+  const [generatedPassword, setGeneratedPassword] = useState("");
   const [resetLoading, setResetLoading] = useState(false);
   const [resetError, setResetError] = useState("");
 
@@ -320,7 +320,8 @@ export default function SchoolsPage() {
     await updateDoc(doc(db,"schools",id), { status: newStatus });
   };
 
-  const resetAdminPassword = async (schoolId: string, adminEmail: string, tempPassword: string) => {
+  const resetAdminPassword = async (schoolId: string, adminEmail: string) => {
+    const tempPassword = generateTempPassword((resetPasswordModal?.schoolId || "").slice(-4) || "TEMP");
     setResetLoading(true);
     setResetError("");
     try {
@@ -336,9 +337,8 @@ export default function SchoolsPage() {
         throw new Error(errorData.message || "Failed to reset password");
       }
 
-      alert(`✅ Password reset successful!\nNew temporary password has been set for ${adminEmail}`);
-      setResetPasswordModal(null);
-      setNewPassword("");
+      // Show the generated password to the super admin
+      setGeneratedPassword(tempPassword);
     } catch (error: any) {
       console.error("Password reset error:", error);
       setResetError(error.message || "Failed to reset password");
@@ -368,7 +368,7 @@ export default function SchoolsPage() {
       <div className="grid grid-cols-4 gap-4 mb-5">
         {[
           { icon:"🏫", label:"Total Schools",   val: schools.length,                                                     cls:"text-navy" },
-          { icon:"✅", label:"Active",           val: schools.filter(s => s.status !== "disabled").length,              cls:"text-emerald-500" },
+          { icon:"✅", label:"Active",           val: schools.filter(s => s.status === "active").length,                cls:"text-emerald-500" },
           { icon:"🚫", label:"Disabled",        val: schools.filter(s => s.status === "disabled").length,              cls:"text-rose-400" },
           { icon:"💬", label:"WhatsApp Active",  val: schools.filter(s => (s as any).whatsappConfig?.verified).length,  cls:"text-green-500" },
         ].map(({ icon, label, val, cls }) => (
@@ -438,15 +438,19 @@ export default function SchoolsPage() {
                   <div className="flex gap-2">
                     <Btn variant="teal"   onClick={() => router.push(`/schools/${s.id}`)}>👁 View</Btn>
                     <button
-                      onClick={() => setResetPasswordModal({
-                        schoolId: s.id,
-                        schoolName: s.name || s.schoolName || s.id,
-                        adminEmail: s.adminEmail || ""
-                      })}
+                      onClick={() => {
+                        setResetPasswordModal({
+                          schoolId: s.id,
+                          schoolName: s.name || s.schoolName || s.id,
+                          adminEmail: s.adminEmail || ""
+                        });
+                        setGeneratedPassword("");
+                        setResetError("");
+                      }}
                       className="px-3 py-1.5 rounded-lg text-[12px] font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
-                      title="Reset Admin Password"
+                      title="Generate Temporary Password"
                     >
-                      🔑 Reset Pass
+                      🔐 Pass Reset
                     </button>
                     <Btn variant="danger" onClick={() => toggleStatus(s.id, s.status)}>
                       {s.status === "disabled" ? "✓ Enable" : "🚫 Disable"}
@@ -747,57 +751,119 @@ export default function SchoolsPage() {
       {resetPasswordModal && (
         <Modal title="🔑 Reset Admin Password" onClose={() => {
           setResetPasswordModal(null);
-          setNewPassword("");
+          setGeneratedPassword("");
           setResetError("");
         }}>
           <div className="space-y-4 py-2">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-              <div className="text-[12px] text-amber-700 font-bold">⚠️ Generate New Temporary Password</div>
-              <div className="text-[11px] text-amber-600 mt-1">
-                A new temporary password will be generated for <strong>{resetPasswordModal.adminEmail}</strong><br/>
-                The admin will be required to change it on next login.
-              </div>
-            </div>
+            {!generatedPassword ? (
+              <>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <div className="text-[12px] text-amber-700 font-bold">⚠️ Generate New Temporary Password</div>
+                  <div className="text-[11px] text-amber-600 mt-1">
+                    A new temporary password will be generated for <strong>{resetPasswordModal.adminEmail}</strong><br/>
+                    The admin will be required to change it on next login.
+                  </div>
+                </div>
 
-            <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-              <div className="text-[11px] text-blue-700">
-                <strong>School:</strong> {resetPasswordModal.schoolName}<br/>
-                <strong>Admin Email:</strong> {resetPasswordModal.adminEmail}
-              </div>
-            </div>
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <div className="text-[11px] text-blue-700">
+                    <strong>School:</strong> {resetPasswordModal.schoolName}<br/>
+                    <strong>Admin Email:</strong> {resetPasswordModal.adminEmail}
+                  </div>
+                </div>
 
-            {resetError && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <div className="text-[12px] text-red-600 font-semibold">❌ Error: {resetError}</div>
-              </div>
-            )}
-
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => resetAdminPassword(
-                  resetPasswordModal.schoolId,
-                  resetPasswordModal.adminEmail,
-                  generateTempPassword(resetPasswordModal.schoolId)
+                {resetError && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <div className="text-[12px] text-red-600 font-semibold">❌ Error: {resetError}</div>
+                  </div>
                 )}
-                disabled={resetLoading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-[13px] font-bold
-                           hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              >
-                {resetLoading ? "Generating…" : "✓ Generate New Password"}
-              </button>
-              <button
-                onClick={() => {
-                  setResetPasswordModal(null);
-                  setNewPassword("");
-                  setResetError("");
-                }}
-                disabled={resetLoading}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-[13px] font-bold
-                           hover:bg-slate-300 disabled:opacity-40 transition"
-              >
-                Cancel
-              </button>
-            </div>
+
+                <div className="flex gap-2 mt-6">
+                  <button
+                    onClick={() => resetAdminPassword(
+                      resetPasswordModal.schoolId,
+                      resetPasswordModal.adminEmail
+                    )}
+                    disabled={resetLoading}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-[13px] font-bold
+                               hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    {resetLoading ? "Generating…" : "✓ Generate New Password"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setResetPasswordModal(null);
+                      setGeneratedPassword("");
+                      setResetError("");
+                    }}
+                    disabled={resetLoading}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-[13px] font-bold
+                               hover:bg-slate-300 disabled:opacity-40 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+                  <div className="text-[12px] text-emerald-700 font-bold">✅ Password Generated Successfully</div>
+                  <div className="text-[11px] text-emerald-600 mt-1">
+                    A new temporary password has been created for <strong>{resetPasswordModal.adminEmail}</strong>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                  <div className="text-[11px] text-blue-700">
+                    <strong>School:</strong> {resetPasswordModal.schoolName}<br/>
+                    <strong>Admin Email:</strong> {resetPasswordModal.adminEmail}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Temporary Password</div>
+                  <div
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedPassword);
+                    }}
+                    className="flex items-center justify-between gap-2 px-4 py-3 rounded-xl border bg-navy border-navy/20 text-white cursor-pointer transition hover:bg-navy/90"
+                  >
+                    <span className="font-mono font-bold text-[14px] tracking-wide">{generatedPassword}</span>
+                    <span className="text-[11px] font-semibold flex-shrink-0">📋 Copy</span>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[11px] space-y-1">
+                  <div className="font-bold text-amber-700">📝 Next Steps:</div>
+                  <div className="text-amber-600">1. Share this password securely with the school admin</div>
+                  <div className="text-amber-600">2. They will be prompted to change it on next login</div>
+                  <div className="text-amber-600">3. Make sure they update their password for security</div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`Email: ${resetPasswordModal.adminEmail}\nPassword: ${generatedPassword}\n\nPlease change your password after login.`);
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-slate-200 text-slate-700 text-[13px] font-bold
+                               hover:bg-slate-300 transition"
+                  >
+                    📋 Copy Email & Password
+                  </button>
+                  <button
+                    onClick={() => {
+                      setResetPasswordModal(null);
+                      setGeneratedPassword("");
+                      setResetError("");
+                    }}
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 text-white text-[13px] font-bold
+                               hover:bg-blue-700 transition"
+                  >
+                    ✓ Done
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </Modal>
       )}
