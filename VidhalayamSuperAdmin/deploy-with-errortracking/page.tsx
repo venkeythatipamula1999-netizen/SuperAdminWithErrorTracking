@@ -162,7 +162,7 @@ export default function SchoolsPage() {
 
   const toggleStatus = async (id: string, current?: string) => {
     await updateDoc(doc(db, "schools", id), {
-      status: current === "suspended" ? "active" : "suspended",
+      status: current === "disabled" ? "active" : "disabled",
     });
   };
 
@@ -177,15 +177,15 @@ export default function SchoolsPage() {
         </div>
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-card">
           <div className="text-3xl font-black text-emerald-500">
-            {schools.filter((s) => s.status !== "suspended").length}
+            {schools.filter((s) => s.status === "active").length}
           </div>
           <div className="text-sm text-slate-500 mt-1">✅ Active</div>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-card">
           <div className="text-3xl font-black text-rose-400">
-            {schools.filter((s) => s.status === "suspended").length}
+            {schools.filter((s) => s.status === "disabled").length}
           </div>
-          <div className="text-sm text-slate-500 mt-1">⊘ Suspended</div>
+          <div className="text-sm text-slate-500 mt-1">🚫 Disabled</div>
         </div>
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-card">
           <div className="text-3xl font-black text-blue-500">
@@ -274,7 +274,7 @@ export default function SchoolsPage() {
                         onClick={() => toggleStatus(s.id, s.status)}
                         className="bg-red-400 text-white px-3 py-1 rounded-lg text-[12px] font-semibold hover:bg-red-500 transition"
                       >
-                        {s.status === "suspended" ? "✓ Enable" : "⊘ Suspend"}
+                        {s.status === "disabled" ? "✓ Enable" : "🚫 Disable"}
                       </button>
                     </div>
                   </Td>

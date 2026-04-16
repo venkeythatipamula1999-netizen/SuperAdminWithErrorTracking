@@ -44,7 +44,6 @@ export function MetricCard({ icon, bg, value, label, sub }: {
 const badgeStyles: Record<string, string> = {
   active:    "bg-emerald-50 text-emerald-600",
   inactive:  "bg-slate-100 text-slate-500",
-  suspended: "bg-rose-50 text-rose-600",
   disabled:  "bg-rose-50 text-rose-600",
   present:   "bg-emerald-50 text-emerald-600",
   absent:    "bg-rose-50 text-rose-600",
