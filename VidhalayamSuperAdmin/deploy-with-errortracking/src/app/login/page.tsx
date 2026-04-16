@@ -12,6 +12,7 @@ function getLoginErrorMessage(error: unknown) {
 
   if (error instanceof FirebaseError) {
     switch (error.code) {
+      case "auth/invalid-login-credentials":
       case "auth/invalid-credential":
       case "auth/wrong-password":
       case "auth/invalid-password":
@@ -24,7 +25,13 @@ function getLoginErrorMessage(error: unknown) {
       case "auth/network-request-failed":
         return "Network error. Check your internet connection and try again.";
       default:
-        return error.message.replace("Firebase: ", "").replace(/\(.*\)/, "").trim() || "Login failed.";
+        return error.message
+          .replace("Firebase: ", "")
+          .replace(/^Error:\s*/i, "")
+          .replace(/\(.*\)/, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/\.$/, "") || "Login failed.";
     }
   }
 
